@@ -550,10 +550,15 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
 
     int offset;
     int rc = bmqu::BlobUtil::positionToOffsetSafe(&offset, input, position);
+    if (rc != 0 || length < 0 || offset < 0 ||
+        static_cast<bsls::Types::Int64>(offset) + length >
+            static_cast<bsls::Types::Int64>(input.length())) {
+        // Invalid position or payload length exceeding the input blob
+        return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+    }
+
     int copyFrom = offset;
     int copyLen  = length;
-
-    BSLS_ASSERT_SAFE(rc == 0);
 
     // First, try to read messagePropertiesSize.
     *messagePropertiesSize = 0;
