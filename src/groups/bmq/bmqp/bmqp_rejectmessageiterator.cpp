@@ -81,6 +81,13 @@ int RejectMessageIterator::next()
     //       'RejectHeader'.
     d_advanceLength = d_header->perMessageWords() * Protocol::k_WORD_SIZE;
 
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_advanceLength <= 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        // A zero-sized message would never make progress (infinite loop).
+        d_header.reset();
+        return rc_INVALID;  // RETURN
+    }
+
     // Update RejectMessage, supporting protocol evolution by reading as many
     // bytes as the header declares (and not as many as the size of the struct)
     d_message.reset(d_blobIter.blob(),
