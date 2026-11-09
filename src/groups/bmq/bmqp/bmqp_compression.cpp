@@ -278,6 +278,12 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
             zlibEndMethod(stream);
             return rc_MAX_SIZE_EXCEEDED;  // RETURN
         }
+
+        if (Z_STREAM_END == result) {
+            // The stream is complete; any remaining input is trailing data
+            // that will never be consumed, so stop to avoid spinning.
+            break;  // BREAK
+        }
     }
 
     // Continue to write output data until the stream reaches its end, or the
