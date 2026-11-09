@@ -334,7 +334,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
     const int mpsSize = srcHeader->messagePropertiesAreaWords() *
                         Protocol::k_WORD_SIZE;
 
-    if (mpsSize > src->length()) {
+    if (mpsSize <= 0 || mpsSize > src->length()) {
         return rc_INCORRECT_LENGTH;  // RETURN
     }
 
@@ -550,10 +550,15 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
 
     int offset;
     int rc = bmqu::BlobUtil::positionToOffsetSafe(&offset, input, position);
+    if (rc != 0 || length < 0 || offset < 0 ||
+        static_cast<bsls::Types::Int64>(offset) + length >
+            static_cast<bsls::Types::Int64>(input.length())) {
+        // Invalid position or payload length exceeding the input blob
+        return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+    }
+
     int copyFrom = offset;
     int copyLen  = length;
-
-    BSLS_ASSERT_SAFE(rc == 0);
 
     // First, try to read messagePropertiesSize.
     *messagePropertiesSize = 0;
@@ -569,6 +574,13 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                                                         position);
             if (rc < 0) {
                 return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+            }
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(*messagePropertiesSize >
+                                                      length)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                // MPs area is larger than the payload length
+                *messagePropertiesSize = 0;
+                return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
             }
             if (messagePropertiesOutput) {
                 bdlbb::BlobUtil::append(messagePropertiesOutput,
