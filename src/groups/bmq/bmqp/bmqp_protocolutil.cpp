@@ -334,7 +334,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
     const int mpsSize = srcHeader->messagePropertiesAreaWords() *
                         Protocol::k_WORD_SIZE;
 
-    if (mpsSize > src->length()) {
+    if (mpsSize <= 0 || mpsSize > src->length()) {
         return rc_INCORRECT_LENGTH;  // RETURN
     }
 
