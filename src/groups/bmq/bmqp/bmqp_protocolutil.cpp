@@ -570,6 +570,13 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
             if (rc < 0) {
                 return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
             }
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(*messagePropertiesSize >
+                                                      length)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                // MPs area is larger than the payload length
+                *messagePropertiesSize = 0;
+                return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+            }
             if (messagePropertiesOutput) {
                 bdlbb::BlobUtil::append(messagePropertiesOutput,
                                         input,
