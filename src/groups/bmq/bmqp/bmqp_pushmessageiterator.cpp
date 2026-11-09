@@ -591,6 +591,14 @@ int PushMessageIterator::next()
         return rc_INVALID_MESSAGE_SIZE;  // RETURN
     }
 
+    // Validation: the header and options areas must fit within the message
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            headerSize + d_header.optionsWords() * Protocol::k_WORD_SIZE >
+            messageSize)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_INVALID_MESSAGE_SIZE;  // RETURN
+    }
+
     // Validation: make sure blob has enough data as indicated by PushHeader
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_blobIter.remaining() <
                                               messageSize)) {
