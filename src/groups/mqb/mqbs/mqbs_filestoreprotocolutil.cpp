@@ -48,8 +48,9 @@ int FileStoreProtocolUtil::hasBmqHeader(const MappedFileDescriptor& mfd)
         rc_INVALID_PARTITION_ID = -6
     };
 
-    if (static_cast<unsigned int>(FileHeader::k_MIN_HEADER_SIZE) >
-        mfd.fileSize()) {
+    if (sizeof(FileHeader) > mfd.fileSize() ||
+        static_cast<unsigned int>(FileHeader::k_MIN_HEADER_SIZE) >
+            mfd.fileSize()) {
         return rc_NOT_ENOUGH_MIN_BYTES;  // RETURN
     }
 
@@ -180,6 +181,12 @@ bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalSyncPoint(
     const unsigned int recordSize = journalHeader.recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
 
+    if (recordSize < sizeof(JournalOpRecord)) {
+        // Records are too small to hold a sync point; also guards against
+        // division by zero and out-of-bounds reads below.
+        return 0;  // RETURN
+    }
+
     // Note that (totalRecordsSize % recordSize) may not be zero because
     // broker might have crashed in the middle of appending a record to the
     // journal.
@@ -258,6 +265,11 @@ bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalRecord(
 
     const unsigned int recordSize = journalHeader.recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
+
+    if (recordSize < sizeof(RecordHeader) + sizeof(bdlb::BigEndianUint32)) {
+        // Records too small to be valid.
+        return lastJournalSyncPoint;  // RETURN
+    }
 
     BSLS_ASSERT_SAFE((lastJournalSyncPoint + recordSize) <= mfd.fileSize());
 

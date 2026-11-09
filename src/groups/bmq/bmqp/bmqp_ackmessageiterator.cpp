@@ -86,6 +86,14 @@ int AckMessageIterator::next()
     //       'AckHeader'.
     d_advanceLength = d_header->perMessageWords() * Protocol::k_WORD_SIZE;
 
+    // A zero-sized message would make the iterator never advance (endless
+    // loop); treat it as an invalid state.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_advanceLength <= 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_header.reset();
+        return rc_INVALID;  // RETURN
+    }
+
     // Update AckMessage, supporting protocol evolution by reading as many
     // bytes as the header declares (and not as many as the size of the struct)
     d_message.reset(d_blobIter.blob(),

@@ -199,8 +199,15 @@ int OptionsView::loadOptionPositionAndSize(
         return rc;  // RETURN
     }
 
-    const char lastByte =
-        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()];
+    const int lastByte = static_cast<unsigned char>(
+        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()]);
+
+    // The padding count comes from the (untrusted) blob; it can't exceed the
+    // option payload size.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(lastByte > optionLenBytes)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return -1;  // RETURN
+    }
 
     *payloadSizeBytes = optionLenBytes - lastByte;
 
