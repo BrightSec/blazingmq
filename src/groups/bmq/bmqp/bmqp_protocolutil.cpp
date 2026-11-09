@@ -550,10 +550,12 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
 
     int offset;
     int rc = bmqu::BlobUtil::positionToOffsetSafe(&offset, input, position);
+    if (rc != 0 || length < 0 || offset < 0 ||
+        length > input.length() - offset) {
+        return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+    }
     int copyFrom = offset;
     int copyLen  = length;
-
-    BSLS_ASSERT_SAFE(rc == 0);
 
     // First, try to read messagePropertiesSize.
     *messagePropertiesSize = 0;
@@ -569,6 +571,9 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                                                         position);
             if (rc < 0) {
                 return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+            }
+            if (*messagePropertiesSize > length) {
+                return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
             }
             if (messagePropertiesOutput) {
                 bdlbb::BlobUtil::append(messagePropertiesOutput,
@@ -639,6 +644,9 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                                                     bmqu::BlobPosition());
         if (rc < 0) {
             return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+        }
+        if (*messagePropertiesSize > decompressedBlob->length()) {
+            return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
         }
 
         if (messagePropertiesOutput) {
