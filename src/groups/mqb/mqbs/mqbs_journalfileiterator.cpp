@@ -85,8 +85,9 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
         return rc_NO_FILE_HEADER;  // RETURN
     }
 
-    if (static_cast<unsigned int>(JournalFileHeader::k_MIN_HEADER_SIZE) >
-        d_blockIter.remaining()) {
+    if (sizeof(JournalFileHeader) > d_blockIter.remaining() ||
+        static_cast<unsigned int>(JournalFileHeader::k_MIN_HEADER_SIZE) >
+            d_blockIter.remaining()) {
         // Not enough space for minimum JournalFileHeader
         clear();
         return rc_NO_JOURNAL_HEADER;  // RETURN
@@ -224,6 +225,18 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
             d_blockIter.remaining() < d_recordSize)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // At the end (if math was correct, d_blockIter.remaining() == 0)
+        clear();
+        return rc_AT_END;  // RETURN
+    }
+
+    // Ensure the whole record lies within the mapped block (applies to both
+    // forward and reverse iteration) and is large enough for a header.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            d_recordSize < sizeof(RecordHeader) ||
+            d_blockIter.position() > d_blockIter.block()->size() ||
+            d_recordSize >
+                d_blockIter.block()->size() - d_blockIter.position())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         clear();
         return rc_AT_END;  // RETURN
     }
